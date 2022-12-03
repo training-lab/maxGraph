@@ -106,7 +106,6 @@ const Template = ({ label, ...args }) => {
         circleLayout.execute(parent);
       } finally {
         if (args.animate) {
-          // TODO: Provide this option! ===============================================
           let morph = new Morphing(graph, 6, 1.5, 20);
           morph.addListener(InternalEvent.DONE, function () {
             graph.getDataModel().endUpdate();
