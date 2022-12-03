@@ -55,7 +55,12 @@ import ElbowEdgeHandler from './handler/ElbowEdgeHandler';
 import CodecRegistry from '../serialization/CodecRegistry';
 import ObjectCodec from '../serialization/ObjectCodec';
 
-import type { GraphPlugin, GraphPluginConstructor, MouseListenerSet } from '../types';
+import type {
+  GraphInstantiators,
+  GraphPlugin,
+  GraphPluginConstructor,
+  MouseListenerSet,
+} from '../types';
 import Multiplicity from './other/Multiplicity';
 import ImageBundle from './image/ImageBundle';
 import GraphSelectionModel from './GraphSelectionModel';
@@ -127,6 +132,7 @@ class Graph extends EventSource {
 
   plugins: GraphPluginConstructor[];
   pluginsMap: Record<string, GraphPlugin> = {};
+  instantiators: GraphInstantiators;
 
   /**
    * Holds the {@link GraphView} that caches the {@link CellState}s for the cells.
@@ -416,12 +422,18 @@ class Graph extends EventSource {
     container: HTMLElement,
     model?: GraphDataModel,
     plugins: GraphPluginConstructor[] = defaultPlugins,
-    stylesheet: Stylesheet | null = null
+    stylesheet: Stylesheet | null = null,
+    instantiators: GraphInstantiators = {}
   ) {
     super();
 
     this.container = container ?? document.createElement('div');
-    this.model = model ?? new GraphDataModel();
+    this.instantiators = instantiators;
+    this.model =
+      model ??
+      (instantiators.GraphDataModel
+        ? new instantiators.GraphDataModel()
+        : new GraphDataModel());
     this.plugins = plugins;
     this.cellRenderer = this.createCellRenderer();
     this.setStylesheet(stylesheet != null ? stylesheet : this.createStylesheet());
@@ -450,7 +462,10 @@ class Graph extends EventSource {
     this.view.revalidate();
   }
 
-  createSelectionModel = () => new GraphSelectionModel(this);
+  createSelectionModel = () =>
+    this.instantiators.GraphSelectionModel
+      ? new this.instantiators.GraphSelectionModel(this)
+      : new GraphSelectionModel(this);
   getContainer = () => this.container;
   getPlugin = (id: string) => this.pluginsMap[id] as unknown;
   getCellRenderer = () => this.cellRenderer;
@@ -497,21 +512,27 @@ class Graph extends EventSource {
    * Creates a new {@link mxGraphSelectionModel} to be used in this graph.
    */
   createStylesheet(): Stylesheet {
-    return new Stylesheet();
+    return this.instantiators.Stylesheet
+      ? new this.instantiators.Stylesheet()
+      : new Stylesheet();
   }
 
   /**
    * Creates a new {@link GraphView} to be used in this graph.
    */
   createGraphView() {
-    return new GraphView(this);
+    return this.instantiators.GraphView
+      ? new this.instantiators.GraphView(this)
+      : new GraphView(this);
   }
 
   /**
    * Creates a new {@link CellRenderer} to be used in this graph.
    */
   createCellRenderer(): CellRenderer {
-    return new CellRenderer();
+    return this.instantiators.CellRenderer
+      ? new this.instantiators.CellRenderer()
+      : new CellRenderer();
   }
 
   /**
@@ -988,7 +1009,9 @@ class Graph extends EventSource {
     ) {
       result = this.createEdgeSegmentHandler(state);
     } else {
-      result = new EdgeHandler(state);
+      result = this.instantiators.EdgeHandler
+        ? new this.instantiators.EdgeHandler(state)
+        : new EdgeHandler(state);
     }
 
     return result as EdgeHandler;
@@ -1000,7 +1023,9 @@ class Graph extends EventSource {
    * @param state {@link CellState} to create the handler for.
    */
   createEdgeSegmentHandler(state: CellState) {
-    return new EdgeSegmentHandler(state);
+    return this.instantiators.EdgeSegmentHandler
+      ? new this.instantiators.EdgeSegmentHandler(state)
+      : new EdgeSegmentHandler(state);
   }
 
   /**
@@ -1009,7 +1034,9 @@ class Graph extends EventSource {
    * @param state {@link CellState} to create the handler for.
    */
   createElbowEdgeHandler(state: CellState) {
-    return new ElbowEdgeHandler(state);
+    return this.instantiators.ElbowEdgeHandler
+      ? new this.instantiators.ElbowEdgeHandler(state)
+      : new ElbowEdgeHandler(state);
   }
 
   /*****************************************************************************
