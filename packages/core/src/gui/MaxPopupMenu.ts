@@ -57,7 +57,9 @@ class MaxPopupMenu extends EventSource implements Partial<PopupMenuItem> {
   ) {
     super();
 
-    this.factoryMethod = factoryMethod;
+    if (factoryMethod) {
+      this.factoryMethod = factoryMethod;
+    }
 
     // Adds the inner table
     this.table = document.createElement('table');
