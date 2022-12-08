@@ -87,20 +87,35 @@ const HTML_TEMPLATE = `
 `;
 
 const Template = ({ label, ...args }) => {
+  const parentContainer = document.createElement('div');
   const container = document.createElement('div');
+
   container.style.position = 'relative';
   container.style.overflow = 'hidden';
   container.style.width = `${args.width}px`;
   container.style.height = `${args.height}px`;
   container.style.background = 'url(/images/grid.gif)';
   container.style.cursor = 'default';
+  parentContainer.appendChild(container)
 
   //constants.SHADOWCOLOR = '#C0C0C0';  // TODO: Find a way of modifying globally or setting locally!
   let joinNodeSize = 7;
   let strokeWidth = 2;
 
-  class MyCustomMaxGraph extends Graph {
+  class MyCustomGraph extends Graph {
     resetEdgesOnConnect = false;
+
+    createEdgeSegmentHandler(state) {
+      return new MyCustomEdgeSegmentHandler(state);
+    }
+
+    createGraphView() {
+      return new MyCustomGraphView(this);
+    }
+
+    createEdgeHandler(state) {
+      return new MyCustomEdgeHandler(state);
+    }
 
     createHandler(state) {
       let result = null;
@@ -663,21 +678,15 @@ const Template = ({ label, ...args }) => {
 
   StyleRegistry.putValue('wireEdgeStyle', EdgeStyle.WireConnector);
 
-  let graph = new MyCustomMaxGraph(container, null, [
-    CellEditorHandler,
+  let graph = new MyCustomGraph(container, null, [
+    MyCustomCellEditorHandler,
     TooltipHandler,
     SelectionCellsHandler,
     PopupMenuHandler,
     MyCustomConnectionHandler,
     MyCustomSelectionHandler,
     MyCustomPanningHandler,
-  ], null, {
-    EdgeSegmentHandler: MyCustomEdgeSegmentHandler,
-    GraphView: MyCustomGraphView,
-    EdgeHandler: MyCustomEdgeHandler,
-    CellEditorHandler: MyCustomCellEditorHandler,
-    ConstraintHandler: MyCustomConstraintHandler,
-  });
+  ]);
 
   let labelBackground = invert ? '#000000' : '#FFFFFF';
   let fontColor = invert ? '#FFFFFF' : '#000000';
@@ -891,13 +900,13 @@ const Template = ({ label, ...args }) => {
     e7.geometry.points = [new Point(500, 350)];
   });
 
-  document.body.appendChild(
+  parentContainer.appendChild(
       button('Zoom In', function () {
         graph.zoomIn();
       })
   );
 
-  document.body.appendChild(
+  parentContainer.appendChild(
       button('Zoom Out', function () {
         graph.zoomOut();
       })
@@ -911,20 +920,20 @@ const Template = ({ label, ...args }) => {
   graph.getDataModel().addListener(InternalEvent.UNDO, listener);
   graph.getView().addListener(InternalEvent.UNDO, listener);
 
-  document.body.appendChild(
+  parentContainer.appendChild(
       button('Undo', function () {
         undoManager.undo();
       })
   );
 
-  document.body.appendChild(
+  parentContainer.appendChild(
       button('Redo', function () {
         undoManager.redo();
       })
   );
 
   // Shows XML for debugging the actual model
-  document.body.appendChild(
+  parentContainer.appendChild(
       button('Delete', function () {
         graph.removeCells();
       })
@@ -934,20 +943,20 @@ const Template = ({ label, ...args }) => {
   let checkbox = document.createElement('input');
   checkbox.setAttribute('type', 'checkbox');
 
-  document.body.appendChild(checkbox);
-  domUtils.write(document.body, 'Wire Mode');
+  parentContainer.appendChild(checkbox);
+  domUtils.write(parentContainer, 'Wire Mode');
 
   // Grid
   let checkbox2 = document.createElement('input');
   checkbox2.setAttribute('type', 'checkbox');
   checkbox2.setAttribute('checked', 'true');
 
-  document.body.appendChild(checkbox2);
-  domUtils.write(document.body, 'Grid');
+  parentContainer.appendChild(checkbox2);
+  domUtils.write(parentContainer, 'Grid');
 
   InternalEvent.addListener(checkbox2, 'click', function (evt) {
     if (checkbox2.checked) {
-      container.style.background = "url('images/wires-grid.gif')";
+      container.style.background = "url(/images/grid.gif)";
     } else {
       container.style.background = '';
     }
@@ -955,7 +964,7 @@ const Template = ({ label, ...args }) => {
   });
   InternalEvent.disableContextMenu(container);
 
-  return container;
+  return parentContainer;
 }
 
 export const Default = Template.bind({});

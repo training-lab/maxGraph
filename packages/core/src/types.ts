@@ -267,18 +267,6 @@ export interface GraphPluginConstructor {
   pluginId: string;
 }
 
-export type GraphInstantiators = {
-  GraphDataModel?: typeof GraphDataModel,
-  GraphSelectionModel?: typeof GraphSelectionModel,
-  Stylesheet?: typeof Stylesheet,
-  GraphView?: typeof GraphView,
-  CellRenderer?: typeof CellRenderer,
-  VertexHandler?: typeof VertexHandler,
-  EdgeHandler?: typeof EdgeHandler,
-  EdgeSegmentHandler?: typeof EdgeSegmentHandler,
-  ElbowEdgeHandler?: typeof ElbowEdgeHandler,
-}
-
 export interface GraphPlugin {
   onDestroy: () => void;
 }

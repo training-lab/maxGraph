@@ -175,8 +175,14 @@ const Template = ({ label, ...args }) => {
     }
   }
 
+  class MyCustomGraph extends Graph {
+    createCellRenderer() {
+      return new MyCustomCellRenderer();
+    }
+  }
+
   // Creates the graph inside the given container
-  let graph = new Graph(container, null, [
+  let graph = new MyCustomGraph(container, null, [
     CellEditorHandler,
     TooltipHandler,
     SelectionCellsHandler,
@@ -184,9 +190,7 @@ const Template = ({ label, ...args }) => {
     ConnectionHandler,
     SelectionHandler,
     PanningHandler,
-  ], null, {
-    CellRenderer: MyCustomCellRenderer,
-  });
+  ]);
   graph.setTooltips(true);
 
   // Enables rubberband selection

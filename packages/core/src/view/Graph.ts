@@ -56,7 +56,6 @@ import CodecRegistry from '../serialization/CodecRegistry';
 import ObjectCodec from '../serialization/ObjectCodec';
 
 import type {
-  GraphInstantiators,
   GraphPlugin,
   GraphPluginConstructor,
   MouseListenerSet,
@@ -132,7 +131,6 @@ class Graph extends EventSource {
 
   plugins: GraphPluginConstructor[];
   pluginsMap: Record<string, GraphPlugin> = {};
-  instantiators: GraphInstantiators;
 
   /**
    * Holds the {@link GraphView} that caches the {@link CellState}s for the cells.
@@ -418,22 +416,100 @@ class Graph extends EventSource {
   containsValidationErrorsResource: string =
     Client.language != 'none' ? 'containsValidationErrors' : '';
 
+  /*****************************************************************************
+   * Group: "Create Class Instance" factory functions
+   *****************************************************************************/
+
+  // These can be overridden in subclasses of Graph to allow the Graph
+  // to instantiate user-defined implementations with custom behavior
+
+  /**
+   * Creates a new {@link Stylesheet} to be used in this graph.
+   */
+  createStylesheet(): Stylesheet {
+    return new Stylesheet();
+  }
+
+  /**
+   * Creates a new {@link GraphView} to be used in this graph.
+   */
+  createGraphView(): GraphView {
+    return new GraphView(this);
+  }
+
+  /**
+   * Creates a new {@link CellRenderer} to be used in this graph.
+   */
+  createCellRenderer(): CellRenderer {
+    return new CellRenderer();
+  }
+
+  /**
+   * Creates a new {@link GraphSelectionModel} to be used in this graph.
+   */
+  createSelectionModel() {
+    return new GraphSelectionModel(this);
+  }
+
+  /**
+   * Creates a new {@link GraphDataModel} to be used in this graph.
+   */
+  createGraphDataModel(): GraphDataModel {
+    return new GraphDataModel();
+  }
+
+  /**
+   * Hooks to create a new {@link EdgeHandler} for the given {@link CellState}.
+   *
+   * @param state {@link CellState} to create the handler for.
+   */
+  createEdgeHandlerInstance(state: CellState): EdgeHandler {
+    // Note this method not being called createEdgeHandler to keep compatibility
+    // with older code which overrides/calls createEdgeHandler
+    return new EdgeHandler(state);
+  }
+
+  /**
+   * Hooks to create a new {@link VertexHandler} for the given {@link CellState}.
+   *
+   * @param state {@link CellState} to create the handler for.
+   */
+  createVertexHandler(state: CellState): VertexHandler {
+    return new VertexHandler(state);
+  }
+
+  /**
+   * Hooks to create a new {@link EdgeSegmentHandler} for the given {@link CellState}.
+   *
+   * @param state {@link CellState} to create the handler for.
+   */
+  createEdgeSegmentHandler(state: CellState) {
+    return new EdgeSegmentHandler(state);
+  }
+
+  /**
+   * Hooks to create a new {@link ElbowEdgeHandler} for the given {@link CellState}.
+   *
+   * @param state {@link CellState} to create the handler for.
+   */
+  createElbowEdgeHandler(state: CellState) {
+    return new ElbowEdgeHandler(state);
+  }
+
+  /*****************************************************************************
+   * Group: Main graph constructor and functions
+   *****************************************************************************/
+
   constructor(
     container: HTMLElement,
     model?: GraphDataModel,
     plugins: GraphPluginConstructor[] = defaultPlugins,
-    stylesheet: Stylesheet | null = null,
-    instantiators: GraphInstantiators = {}
+    stylesheet: Stylesheet | null = null
   ) {
     super();
 
     this.container = container ?? document.createElement('div');
-    this.instantiators = instantiators;
-    this.model =
-      model ??
-      (instantiators.GraphDataModel
-        ? new instantiators.GraphDataModel()
-        : new GraphDataModel());
+    this.model = model ?? this.createGraphDataModel();
     this.plugins = plugins;
     this.cellRenderer = this.createCellRenderer();
     this.setStylesheet(stylesheet != null ? stylesheet : this.createStylesheet());
@@ -454,7 +530,7 @@ class Graph extends EventSource {
     // Set the selection model
     this.setSelectionModel(this.createSelectionModel());
 
-    // Initiailzes plugins
+    // Initializes plugins
     this.plugins.forEach((p: GraphPluginConstructor) => {
       this.pluginsMap[p.pluginId] = new p(this);
     });
@@ -462,10 +538,6 @@ class Graph extends EventSource {
     this.view.revalidate();
   }
 
-  createSelectionModel = () =>
-    this.instantiators.GraphSelectionModel
-      ? new this.instantiators.GraphSelectionModel(this)
-      : new GraphSelectionModel(this);
   getContainer = () => this.container;
   getPlugin = (id: string) => this.pluginsMap[id] as unknown;
   getCellRenderer = () => this.cellRenderer;
@@ -506,33 +578,6 @@ class Graph extends EventSource {
     } finally {
       this.getDataModel().endUpdate();
     }
-  }
-
-  /**
-   * Creates a new {@link mxGraphSelectionModel} to be used in this graph.
-   */
-  createStylesheet(): Stylesheet {
-    return this.instantiators.Stylesheet
-      ? new this.instantiators.Stylesheet()
-      : new Stylesheet();
-  }
-
-  /**
-   * Creates a new {@link GraphView} to be used in this graph.
-   */
-  createGraphView() {
-    return this.instantiators.GraphView
-      ? new this.instantiators.GraphView(this)
-      : new GraphView(this);
-  }
-
-  /**
-   * Creates a new {@link CellRenderer} to be used in this graph.
-   */
-  createCellRenderer(): CellRenderer {
-    return this.instantiators.CellRenderer
-      ? new this.instantiators.CellRenderer()
-      : new CellRenderer();
   }
 
   /**
@@ -981,15 +1026,6 @@ class Graph extends EventSource {
   }
 
   /**
-   * Hooks to create a new {@link VertexHandler} for the given {@link CellState}.
-   *
-   * @param state {@link CellState} to create the handler for.
-   */
-  createVertexHandler(state: CellState): VertexHandler {
-    return new VertexHandler(state);
-  }
-
-  /**
    * Hooks to create a new {@link EdgeHandler} for the given {@link CellState}.
    *
    * @param state {@link CellState} to create the handler for.
@@ -1009,34 +1045,10 @@ class Graph extends EventSource {
     ) {
       result = this.createEdgeSegmentHandler(state);
     } else {
-      result = this.instantiators.EdgeHandler
-        ? new this.instantiators.EdgeHandler(state)
-        : new EdgeHandler(state);
+      result = this.createEdgeHandlerInstance(state);
     }
 
     return result as EdgeHandler;
-  }
-
-  /**
-   * Hooks to create a new {@link EdgeSegmentHandler} for the given {@link CellState}.
-   *
-   * @param state {@link CellState} to create the handler for.
-   */
-  createEdgeSegmentHandler(state: CellState) {
-    return this.instantiators.EdgeSegmentHandler
-      ? new this.instantiators.EdgeSegmentHandler(state)
-      : new EdgeSegmentHandler(state);
-  }
-
-  /**
-   * Hooks to create a new {@link ElbowEdgeHandler} for the given {@link CellState}.
-   *
-   * @param state {@link CellState} to create the handler for.
-   */
-  createElbowEdgeHandler(state: CellState) {
-    return this.instantiators.ElbowEdgeHandler
-      ? new this.instantiators.ElbowEdgeHandler(state)
-      : new ElbowEdgeHandler(state);
   }
 
   /*****************************************************************************

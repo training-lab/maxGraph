@@ -74,6 +74,10 @@ const Template = ({ label, ...args }) => {
   }
 
   class MyCustomGraph extends Graph {
+    createGraphDataModel() {
+      return new MyCustomGraphDataModel();
+    }
+
     // Overrides method to provide a cell label in the display
     convertValueToString(cell) {
       if (cached && cell.div != null) {
@@ -141,9 +145,7 @@ const Template = ({ label, ...args }) => {
     ConnectionHandler,
     SelectionHandler,
     PanningHandler,
-  ], null, {
-    GraphDataModel: MyCustomGraphDataModel
-  });
+  ]);
 
   // Enables HTML labels
   graph.setHtmlLabels(true);
