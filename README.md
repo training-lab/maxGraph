@@ -80,6 +80,8 @@ graph.batchUpdate(() => {
 
 You will see something like in the following _maxGraph panning_ demo:
 
+**TODO** move this images to packages/docs for consistency with the rest of the documentation. We will be able to reuse this image in the published doc as well
+
 ![maxGraph panning demo](docs/maxgraph_demo.gif "maxGraph panning demo")
 
 For more details, have a look at the [storybook stories](packages/html/stories).
